@@ -2,8 +2,9 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Mic, MicOff, SendHorizonal, X, ArrowRight, Loader2, Volume2, VolumeX } from "lucide-react";
-import { VeraCore, type VeraCoreState } from "@/components/VeraCore";
+import type { VeraCoreState } from "@/components/VeraCore";
 import { LivePreview } from "@/components/builder/live-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,16 @@ import { usePremiumVoice } from "@/hooks/use-premium-voice";
 import { useMicAmplitude } from "@/hooks/use-mic-amplitude";
 import { extractCodeBlock } from "@/lib/ai/mock-responses";
 import { cn } from "@/lib/utils";
+
+// La esfera neuronal usa @react-three/fiber (WebGL) — se carga solo en el
+// cliente. Sin esto, el intento de montar el <Canvas> durante el renderizado
+// en servidor no coincidiría con el cliente en la hidratación.
+const VeraCore = dynamic(() => import("@/components/VeraCore").then((mod) => mod.VeraCore), {
+  ssr: false,
+  loading: () => (
+    <div className="relative mb-8 aspect-square w-56 animate-pulse rounded-full bg-gradient-to-br from-hud-cyan/10 to-hud-blue/5 sm:w-72 lg:w-80" />
+  ),
+});
 
 const SUGGESTIONS = [
   "⚡ Crear Landing Page para marca de ropa sostenible",

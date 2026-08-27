@@ -4,15 +4,15 @@ import type { ModelRouteDecision, ModelTier } from "@/types/chat";
  * Model Router — enrutamiento por capas para minimizar coste de inferencia.
  *
  * - "fast": tareas simples de clasificación, respuestas cortas de chat,
- *   generación de copy social. Modelo por defecto: Claude 3.5 Haiku
+ *   generación de copy social. Modelo por defecto: Claude Haiku 4.5
  *   (alternativa intercambiable: Gemini 1.5 Flash).
  * - "reasoning": generación de código/UI compleja, refactors multi-archivo,
- *   razonamiento largo. Modelo: Claude 3.5 Sonnet.
+ *   razonamiento largo. Modelo: Claude Sonnet 5.
  */
 
 const MODEL_IDS: Record<ModelTier, string> = {
-  fast: "claude-3-5-haiku-latest",
-  reasoning: "claude-3-5-sonnet-latest",
+  fast: "claude-haiku-4-5",
+  reasoning: "claude-sonnet-5",
 };
 
 const CODE_GENERATION_KEYWORDS = [

@@ -36,12 +36,12 @@ function stripCodeBlocks(text: string): string {
 export function VeraHero() {
   const [input, setInput] = useState("");
   const [coreState, setCoreState] = useState<VeraCoreState>("idle");
-  const [showPreview, setShowPreview] = useState(false);
   const [prose, setProse] = useState("");
   const [code, setCode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [captionVisible, setCaptionVisible] = useState(false);
 
   const { isSupported: sttSupported, isListening, start, stop } = useSpeechRecognition({
     onFinalResult: (transcript) => handleSubmit(transcript),
@@ -63,6 +63,16 @@ export function VeraHero() {
     }
   }, [isSpeaking, premium.isSpeaking]);
 
+  // El subtítulo es efímero: aparece mientras V.E.R.A responde y se
+  // desvanece solo un rato después de callar, para que la protagonista
+  // siga siendo la esfera, no un bloque de texto permanente.
+  useEffect(() => {
+    if (coreState === "idle" && captionVisible && (prose || error)) {
+      const timeout = setTimeout(() => setCaptionVisible(false), 4500);
+      return () => clearTimeout(timeout);
+    }
+  }, [coreState, captionVisible, prose, error]);
+
   async function handleSubmit(text: string) {
     const value = text.trim();
     if (!value || isStreaming) return;
@@ -71,7 +81,7 @@ export function VeraHero() {
     setError(null);
     setCode(null);
     setProse("");
-    setShowPreview(true);
+    setCaptionVisible(true);
     setCoreState("thinking");
     setIsStreaming(true);
 
@@ -146,10 +156,8 @@ export function VeraHero() {
     handleSubmit(input);
   }
 
-  function handleClosePreview() {
-    cancelSpeech();
-    premium.stop();
-    setShowPreview(false);
+  function handleDismissCode() {
+    setCode(null);
   }
 
   return (
@@ -181,6 +189,21 @@ export function VeraHero() {
         infraestructura inicial.
       </p>
 
+      {/* Lo que dice V.E.R.A: un subtítulo efímero, no un bloque de texto
+          permanente — la esfera sigue siendo la protagonista. Se reserva
+          altura fija para que no salte el resto del layout al aparecer. */}
+      <div className="mt-6 flex min-h-[2.75rem] w-full max-w-lg items-start justify-center px-4">
+        <p
+          className={cn(
+            "line-clamp-3 text-sm leading-relaxed transition-opacity duration-700",
+            error ? "text-destructive" : "text-hud-cyan/85",
+            captionVisible && (prose || error) ? "opacity-100" : "pointer-events-none opacity-0"
+          )}
+        >
+          {error ?? prose}
+        </p>
+      </div>
+
       <form
         onSubmit={handleInputSubmit}
         className="mt-10 flex w-full max-w-xl items-center gap-2 rounded-2xl border border-hud-cyan/20 bg-white/[0.03] p-2 shadow-[0_0_50px_-12px_rgba(0,240,255,0.25)] backdrop-blur-xl"
@@ -206,6 +229,18 @@ export function VeraHero() {
           placeholder="Crea una landing, unos reels, optimiza tu tienda…"
           className="border-0 bg-transparent font-mono text-sm shadow-none focus-visible:ring-0"
         />
+        {ttsSupported && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleToggleMute}
+            className="shrink-0 rounded-xl text-muted-foreground hover:bg-hud-cyan/10 hover:text-hud-cyan"
+            aria-label={isMuted ? "Activar voz de V.E.R.A" : "Silenciar voz de V.E.R.A"}
+          >
+            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </Button>
+        )}
         <Button
           type="submit"
           variant="jarvis"
@@ -231,62 +266,30 @@ export function VeraHero() {
         ))}
       </div>
 
-      {showPreview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-hud-bg/80 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-hud-cyan/20 bg-hud-bg2/95 shadow-[0_0_80px_-20px_rgba(0,240,255,0.35)] animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center justify-between border-b border-hud-cyan/15 px-5 py-3">
-              <span className="font-mono text-sm font-semibold text-hud-cyan">
-                V.E.R.A{" "}
-                {isStreaming
-                  ? "está generando…"
-                  : coreState === "speaking"
-                    ? "está hablando…"
-                    : "responde"}
-              </span>
-              <div className="flex items-center gap-1">
-                {ttsSupported && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleToggleMute}
-                    className="h-7 w-7"
-                    aria-label={isMuted ? "Activar voz" : "Silenciar voz"}
-                  >
-                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </Button>
-                )}
-                <Button variant="ghost" size="icon" onClick={handleClosePreview} className="h-7 w-7">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5">
-              {error ? (
-                <p className="text-sm text-destructive">{error}</p>
-              ) : (
-                <>
-                  {prose && <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{prose}</p>}
-                  {code && (
-                    <div className="mt-4 h-80">
-                      <LivePreview code={code} isGenerating={isStreaming} />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between border-t border-hud-cyan/15 px-5 py-3">
-              <span className="text-xs text-muted-foreground">
-                Esto es solo un adelanto — sigue creando en el Builder completo.
-              </span>
+      {/* Vista previa: secundaria y discreta, nunca tapa la esfera —
+          aparece debajo, en el flujo normal de la página. */}
+      {code && (
+        <div className="mt-8 w-full max-w-xl overflow-hidden rounded-xl border border-hud-cyan/15 bg-white/[0.02] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center justify-between border-b border-hud-cyan/10 px-4 py-2">
+            <span className="text-xs font-medium text-muted-foreground">Vista previa generada</span>
+            <div className="flex items-center gap-1">
               <Link href="/builder">
-                <Button variant="jarvis" size="sm" className="gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs text-hud-cyan hover:text-hud-cyan"
+                >
                   Abrir Builder
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
+              <Button variant="ghost" size="icon" onClick={handleDismissCode} className="h-6 w-6">
+                <X className="h-3.5 w-3.5" />
+              </Button>
             </div>
+          </div>
+          <div className="h-56 sm:h-64">
+            <LivePreview code={code} isGenerating={isStreaming} />
           </div>
         </div>
       )}

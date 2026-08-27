@@ -41,6 +41,13 @@ const config: Config = {
           DEFAULT: "hsl(var(--jarvis))",
           glow: "hsl(var(--jarvis-glow))",
         },
+        hud: {
+          cyan: "#00f0ff",
+          blue: "#0070f3",
+          violet: "#8b5cf6",
+          bg: "#050811",
+          bg2: "#0a0f1d",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -56,10 +63,30 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0" },
         },
+        "orb-breathe": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.9" },
+          "50%": { transform: "scale(1.05)", opacity: "1" },
+        },
+        "orb-think": {
+          "0%, 100%": { transform: "scale(1)", opacity: "0.85" },
+          "50%": { transform: "scale(1.12)", opacity: "1" },
+        },
+        "eq-bar": {
+          "0%, 100%": { transform: "scaleY(0.3)" },
+          "50%": { transform: "scaleY(1)" },
+        },
+        "grid-drift": {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "48px 48px" },
+        },
       },
       animation: {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         blink: "blink 1s step-end infinite",
+        "orb-breathe": "orb-breathe 3.2s ease-in-out infinite",
+        "orb-think": "orb-think 0.7s ease-in-out infinite",
+        "eq-bar": "eq-bar 0.9s ease-in-out infinite",
+        "grid-drift": "grid-drift 14s linear infinite",
       },
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],

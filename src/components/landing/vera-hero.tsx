@@ -2,12 +2,14 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Mic, MicOff, SendHorizonal, X, ArrowRight, Loader2 } from "lucide-react";
+import { Mic, MicOff, SendHorizonal, X, ArrowRight, Loader2, Volume2, VolumeX } from "lucide-react";
 import { VeraCore, type VeraCoreState } from "@/components/VeraCore";
 import { LivePreview } from "@/components/builder/live-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
+import { usePremiumVoice } from "@/hooks/use-premium-voice";
 import { useMicAmplitude } from "@/hooks/use-mic-amplitude";
 import { extractCodeBlock } from "@/lib/ai/mock-responses";
 import { cn } from "@/lib/utils";
@@ -39,11 +41,14 @@ export function VeraHero() {
   const [code, setCode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const { isSupported: sttSupported, isListening, start, stop } = useSpeechRecognition({
     onFinalResult: (transcript) => handleSubmit(transcript),
   });
   const micAmplitude = useMicAmplitude(isListening);
+  const { speak, cancel: cancelSpeech, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const premium = usePremiumVoice();
 
   useEffect(() => {
     setCoreState((prev) => {
@@ -51,6 +56,12 @@ export function VeraHero() {
       return prev === "listening" ? "idle" : prev;
     });
   }, [isListening]);
+
+  useEffect(() => {
+    if (!isSpeaking && !premium.isSpeaking) {
+      setCoreState((prev) => (prev === "speaking" ? "idle" : prev));
+    }
+  }, [isSpeaking, premium.isSpeaking]);
 
   async function handleSubmit(text: string) {
     const value = text.trim();
@@ -84,11 +95,27 @@ export function VeraHero() {
         setProse(stripCodeBlocks(fullText));
       }
 
-      setCode(extractCodeBlock(fullText));
-      setProse(stripCodeBlocks(fullText));
+      const finalCode = extractCodeBlock(fullText);
+      const finalProse = stripCodeBlocks(fullText);
+      setCode(finalCode);
+      setProse(finalProse);
+      setIsStreaming(false);
+
+      if (!isMuted && finalProse.trim()) {
+        setCoreState("speaking");
+        const playedPremium = await premium.speak(finalProse);
+        if (!playedPremium) {
+          if (ttsSupported) {
+            speak(finalProse);
+          } else {
+            setCoreState("idle");
+          }
+        }
+      } else {
+        setCoreState("idle");
+      }
     } catch {
       setError("No se pudo conectar con V.E.R.A. Verifica tu red o vuelve a intentarlo.");
-    } finally {
       setIsStreaming(false);
       setCoreState("idle");
     }
@@ -97,9 +124,21 @@ export function VeraHero() {
   function handleMicClick() {
     if (isListening) {
       stop();
-    } else {
-      start();
+      return;
     }
+    if (coreState === "speaking") {
+      cancelSpeech();
+      premium.stop();
+    }
+    start();
+  }
+
+  function handleToggleMute() {
+    if (!isMuted) {
+      cancelSpeech();
+      premium.stop();
+    }
+    setIsMuted((m) => !m);
   }
 
   function handleInputSubmit(e: FormEvent) {
@@ -108,6 +147,8 @@ export function VeraHero() {
   }
 
   function handleClosePreview() {
+    cancelSpeech();
+    premium.stop();
     setShowPreview(false);
   }
 
@@ -123,7 +164,8 @@ export function VeraHero() {
 
       <VeraCore
         state={coreState}
-        amplitude={micAmplitude}
+        amplitude={coreState === "listening" ? micAmplitude : premium.isSpeaking ? premium.amplitude : 0}
+        realAmplitudeSpeaking={premium.isSpeaking}
         className="mb-8 w-56 sm:w-72 lg:w-80"
       />
 
@@ -194,11 +236,29 @@ export function VeraHero() {
           <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-hud-cyan/20 bg-hud-bg2/95 shadow-[0_0_80px_-20px_rgba(0,240,255,0.35)] animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <div className="flex items-center justify-between border-b border-hud-cyan/15 px-5 py-3">
               <span className="font-mono text-sm font-semibold text-hud-cyan">
-                V.E.R.A {isStreaming ? "está generando…" : "responde"}
+                V.E.R.A{" "}
+                {isStreaming
+                  ? "está generando…"
+                  : coreState === "speaking"
+                    ? "está hablando…"
+                    : "responde"}
               </span>
-              <Button variant="ghost" size="icon" onClick={handleClosePreview} className="h-7 w-7">
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {ttsSupported && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleMute}
+                    className="h-7 w-7"
+                    aria-label={isMuted ? "Activar voz" : "Silenciar voz"}
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={handleClosePreview} className="h-7 w-7">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5">

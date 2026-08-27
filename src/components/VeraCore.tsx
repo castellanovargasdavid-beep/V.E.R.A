@@ -2,12 +2,16 @@
 
 import { cn } from "@/lib/utils";
 
-export type VeraCoreState = "idle" | "listening" | "thinking";
+export type VeraCoreState = "idle" | "listening" | "thinking" | "speaking";
 
 interface VeraCoreProps {
   state: VeraCoreState;
-  /** Nivel real del micrófono (0-1). Solo se usa en estado "listening". */
+  /** Nivel real del micrófono ("listening") o de la voz de V.E.R.A
+   *  ("speaking" con `realAmplitudeSpeaking`), de 0 a 1. */
   amplitude?: number;
+  /** Cuando el estado es "speaking", indica si `amplitude` proviene de
+   *  audio real (voz neuronal) en lugar del pulso sintético por defecto. */
+  realAmplitudeSpeaking?: boolean;
   className?: string;
 }
 
@@ -23,10 +27,17 @@ const BAR_SHAPE = [0.5, 0.78, 1, 0.78, 0.5];
  * loop de animación) salvo el pulso de "listening", que sí depende de la
  * amplitud real del micrófono pasada por props.
  */
-export function VeraCore({ state, amplitude = 0, className }: VeraCoreProps) {
+export function VeraCore({ state, amplitude = 0, realAmplitudeSpeaking = false, className }: VeraCoreProps) {
   const level = Math.min(Math.max(amplitude, 0), 1);
-  const coreScale = state === "listening" ? 1 + level * 0.3 : undefined;
-  const glowAlpha = state === "listening" ? 0.35 + level * 0.4 : state === "thinking" ? 0.55 : 0.3;
+  const speakingWithRealAudio = state === "speaking" && realAmplitudeSpeaking;
+  const coreScale =
+    state === "listening" || speakingWithRealAudio ? 1 + level * 0.3 : undefined;
+  const glowAlpha =
+    state === "listening" || speakingWithRealAudio
+      ? 0.35 + level * 0.4
+      : state === "thinking" || state === "speaking"
+        ? 0.55
+        : 0.3;
 
   return (
     <div className={cn("relative aspect-square", className)} aria-hidden="true">
@@ -34,7 +45,11 @@ export function VeraCore({ state, amplitude = 0, className }: VeraCoreProps) {
       <div
         className={cn(
           "absolute inset-[4%] rounded-full blur-2xl transition-opacity duration-700",
-          state === "thinking" ? "opacity-90" : state === "listening" ? "opacity-80" : "opacity-45"
+          state === "thinking" || state === "speaking"
+            ? "opacity-90"
+            : state === "listening"
+              ? "opacity-80"
+              : "opacity-45"
         )}
         style={{
           background:
@@ -50,7 +65,7 @@ export function VeraCore({ state, amplitude = 0, className }: VeraCoreProps) {
       <div
         className={cn(
           "absolute inset-[14%] rounded-full border-2 [animation:spin_14s_linear_infinite_reverse] [box-shadow:0_0_30px_rgba(0,112,243,0.22)] [will-change:transform]",
-          state === "thinking" ? "border-hud-cyan/70" : "border-hud-blue/35"
+          state === "thinking" || state === "speaking" ? "border-hud-cyan/70" : "border-hud-blue/35"
         )}
       />
 
@@ -78,7 +93,8 @@ export function VeraCore({ state, amplitude = 0, className }: VeraCoreProps) {
         className={cn(
           "absolute inset-[29%] rounded-full transition-[box-shadow] duration-300",
           state === "idle" && "animate-orb-breathe",
-          state === "thinking" && "animate-orb-think"
+          state === "thinking" && "animate-orb-think",
+          state === "speaking" && !speakingWithRealAudio && "animate-orb-think"
         )}
         style={{
           background:
@@ -95,12 +111,15 @@ export function VeraCore({ state, amplitude = 0, className }: VeraCoreProps) {
               className={cn(
                 "h-[38%] w-[9%] origin-center rounded-full bg-white/90",
                 state === "idle" && "animate-orb-breathe",
-                state === "thinking" && "animate-eq-bar"
+                (state === "thinking" || (state === "speaking" && !speakingWithRealAudio)) && "animate-eq-bar"
               )}
               style={{
-                animationDelay: state === "thinking" ? `${i * 80}ms` : undefined,
-                animationDuration: state === "thinking" ? "0.45s" : undefined,
-                transform: state === "listening" ? `scaleY(${0.25 + level * factor})` : undefined,
+                animationDelay: state === "thinking" || state === "speaking" ? `${i * 80}ms` : undefined,
+                animationDuration: state === "thinking" || state === "speaking" ? "0.45s" : undefined,
+                transform:
+                  state === "listening" || speakingWithRealAudio
+                    ? `scaleY(${0.25 + level * factor})`
+                    : undefined,
               }}
             />
           ))}

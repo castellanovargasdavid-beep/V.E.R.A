@@ -14,8 +14,14 @@ const GENERATION_TRIGGERS = [
 /**
  * Genera una respuesta simulada coherente cuando no hay ANTHROPIC_API_KEY
  * configurada, para que el chat y el builder funcionen en modo demo.
+ * En modo voz evita tecnicismos y bloques de código, ya que el texto se lee
+ * en voz alta tal cual.
  */
-export function buildMockChatReply(userMessage: string): string {
+export function buildMockChatReply(userMessage: string, mode?: "voice"): string {
+  if (mode === "voice") {
+    return "Ahora mismo estoy en modo de prueba, así que todavía no puedo pensar una respuesta de verdad para ti. En cuanto conecten mi cerebro de inteligencia artificial, podremos charlar con normalidad. Mientras tanto, cuéntame qué te gustaría lograr y lo tendré en cuenta.";
+  }
+
   const lower = userMessage.toLowerCase();
   const isGenerationRequest = GENERATION_TRIGGERS.some((kw) => lower.includes(kw));
 

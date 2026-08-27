@@ -26,19 +26,25 @@ const PARTICLE_COUNT = 10;
 export function VoiceOrb({
   state,
   amplitude = 0,
+  realAmplitudeSpeaking = false,
   size = 280,
   className,
 }: {
   state: VoiceState;
   amplitude?: number;
+  /** Cuando el estado es "speaking", indica si `amplitude` proviene de audio
+   *  real (voz neuronal) en lugar del pulso sintético por defecto. */
+  realAmplitudeSpeaking?: boolean;
   size?: number;
   className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef(state);
   const amplitudeRef = useRef(amplitude);
+  const realAmplitudeSpeakingRef = useRef(realAmplitudeSpeaking);
   stateRef.current = state;
   amplitudeRef.current = amplitude;
+  realAmplitudeSpeakingRef.current = realAmplitudeSpeaking;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -65,6 +71,9 @@ export function VoiceOrb({
         case "listening":
           return 0.15 + Math.min(amplitudeRef.current, 1) * 0.6;
         case "speaking":
+          if (realAmplitudeSpeakingRef.current) {
+            return 0.14 + Math.min(amplitudeRef.current, 1) * 0.65;
+          }
           return 0.32 + 0.3 * Math.abs(Math.sin(t * 6.4)) + 0.12 * Math.abs(Math.sin(t * 13.3 + 1.4));
         case "thinking":
           return 0.24 + 0.08 * Math.sin(t * 3);

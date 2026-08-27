@@ -1,7 +1,7 @@
 import { streamText } from "ai";
 import { getAnthropicProvider, mockTextStream } from "@/lib/ai/client";
 import { routeMessage } from "@/lib/ai/router";
-import { JARVIS_SYSTEM_PROMPT } from "@/lib/ai/prompts";
+import { JARVIS_SYSTEM_PROMPT, VOICE_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { buildMockChatReply } from "@/lib/ai/mock-responses";
 
 export const runtime = "nodejs";
@@ -16,6 +16,8 @@ export async function POST(req: Request) {
   const body = await req.json();
   const messages = (body.messages ?? []) as IncomingMessage[];
   const intent = (body.intent as "chat" | "ui_generation" | undefined) ?? "chat";
+  const mode = body.mode as "voice" | undefined;
+  const systemPrompt = mode === "voice" ? VOICE_SYSTEM_PROMPT : JARVIS_SYSTEM_PROMPT;
 
   const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
   const decision = routeMessage({ content: lastUserMessage?.content ?? "", intent });
@@ -23,7 +25,7 @@ export async function POST(req: Request) {
   const anthropic = getAnthropicProvider();
 
   if (!anthropic) {
-    const reply = buildMockChatReply(lastUserMessage?.content ?? "");
+    const reply = buildMockChatReply(lastUserMessage?.content ?? "", mode);
     return new Response(mockTextStream(reply), {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: anthropic(decision.modelId),
-    system: JARVIS_SYSTEM_PROMPT,
+    system: systemPrompt,
     messages,
   });
 

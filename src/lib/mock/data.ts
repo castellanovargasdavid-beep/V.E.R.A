@@ -142,3 +142,7 @@ export function isSupabaseConfigured(): boolean {
 export function isAnthropicConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
+
+export function isElevenLabsConfigured(): boolean {
+  return Boolean(process.env.ELEVENLABS_API_KEY);
+}

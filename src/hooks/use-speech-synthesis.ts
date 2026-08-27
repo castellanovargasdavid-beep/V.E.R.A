@@ -28,9 +28,17 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
 
     function pickVoice() {
       const voices = window.speechSynthesis.getVoices();
+      const isHighQuality = (v: SpeechSynthesisVoice) =>
+        /natural|neural|online|premium|enhanced|google/i.test(v.name);
+
+      const spanishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase()));
+      const anySpanishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("es"));
+
       voiceRef.current =
-        voices.find((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase())) ??
-        voices.find((v) => v.lang.toLowerCase().startsWith("es")) ??
+        spanishVoices.find(isHighQuality) ??
+        anySpanishVoices.find(isHighQuality) ??
+        spanishVoices[0] ??
+        anySpanishVoices[0] ??
         null;
     }
 
@@ -53,8 +61,10 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 1.02;
-      utterance.pitch = 0.95;
+      // Rate/pitch ligeramente por debajo de lo natural para sonar más
+      // pausado y cálido en vez de la cadencia por defecto, más robótica.
+      utterance.rate = 0.96;
+      utterance.pitch = 1.0;
       if (voiceRef.current) utterance.voice = voiceRef.current;
 
       utterance.onstart = () => setIsSpeaking(true);

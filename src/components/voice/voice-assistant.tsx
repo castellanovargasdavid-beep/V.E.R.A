@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
+import { usePremiumVoice } from "@/hooks/use-premium-voice";
 import { useMicAmplitude } from "@/hooks/use-mic-amplitude";
 import { generateId } from "@/lib/utils";
 import type { VoiceState, VoiceTurn } from "@/types/voice";
@@ -28,6 +29,7 @@ export function VoiceAssistant() {
   turnsRef.current = turns;
 
   const { speak, cancel: cancelSpeech, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const premium = usePremiumVoice();
 
   const { isSupported: sttSupported, isListening, interimTranscript, error: sttError, start, stop } =
     useSpeechRecognition({
@@ -44,10 +46,10 @@ export function VoiceAssistant() {
   }, [isListening]);
 
   useEffect(() => {
-    if (!isSpeaking) {
+    if (!isSpeaking && !premium.isSpeaking) {
       setPhase((prev) => (prev === "speaking" ? "idle" : prev));
     }
-  }, [isSpeaking]);
+  }, [isSpeaking, premium.isSpeaking]);
 
   async function handleUserMessage(text: string) {
     if (!text.trim()) return;
@@ -70,7 +72,7 @@ export function VoiceAssistant() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, intent: "chat" }),
+        body: JSON.stringify({ messages: history, intent: "chat", mode: "voice" }),
       });
 
       if (!response.body) throw new Error("Sin cuerpo de respuesta");
@@ -92,9 +94,16 @@ export function VoiceAssistant() {
       };
       setTurns((prev) => [...prev, assistantTurn]);
 
-      if (ttsSupported && !isMuted) {
+      if (!isMuted) {
         setPhase("speaking");
-        speak(assistantTurn.text);
+        const playedPremium = await premium.speak(assistantTurn.text);
+        if (!playedPremium) {
+          if (ttsSupported) {
+            speak(assistantTurn.text);
+          } else {
+            setPhase("idle");
+          }
+        }
       } else {
         setPhase("idle");
       }
@@ -117,12 +126,18 @@ export function VoiceAssistant() {
       stop();
       return;
     }
-    if (phase === "speaking") cancelSpeech();
+    if (phase === "speaking") {
+      cancelSpeech();
+      premium.stop();
+    }
     start();
   }
 
   function handleToggleMute() {
-    if (!isMuted) cancelSpeech();
+    if (!isMuted) {
+      cancelSpeech();
+      premium.stop();
+    }
     setIsMuted((m) => !m);
   }
 
@@ -147,7 +162,12 @@ export function VoiceAssistant() {
           className="group relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-jarvis disabled:cursor-not-allowed"
           aria-label={phase === "listening" ? "Detener escucha" : "Empezar a hablar"}
         >
-          <VoiceOrb state={orbState} amplitude={micAmplitude} size={260} />
+          <VoiceOrb
+            state={orbState}
+            amplitude={phase === "listening" ? micAmplitude : premium.isSpeaking ? premium.amplitude : 0}
+            realAmplitudeSpeaking={premium.isSpeaking}
+            size={260}
+          />
           {sttSupported && (
             <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
               {phase === "listening" ? (

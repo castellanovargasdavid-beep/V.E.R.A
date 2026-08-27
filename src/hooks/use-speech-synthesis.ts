@@ -10,33 +10,43 @@ interface UseSpeechSynthesisReturn {
 }
 
 /**
- * Divide el texto en frases para poder hablarlas como utterances separadas.
- * Encadenar una única utterance larga suena monótono (mismo ritmo de
- * principio a fin); hablar frase a frase con una pausa entre medias imita
- * mejor el ritmo natural de una conversación.
+ * Limpia el texto antes de enviarlo a la síntesis de voz del navegador.
+ * Muchas voces (sobre todo las de menor calidad, que son las que se usan
+ * de respaldo aquí) no interpretan los signos de puntuación como pausas:
+ * literalmente dicen "coma" o "punto", y anuncian el nombre del emoji. Se
+ * sustituyen por saltos de línea (que la mayoría de motores sí tratan como
+ * una pausa silenciosa) en vez de dejar que se lean en voz alta.
  */
-function splitIntoSentences(text: string): string[] {
+function sanitizeForSpeech(text: string): string {
   return text
-    .split(/(?<=[.!?…])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter(Boolean);
-}
-
-function jitter(base: number, spread: number): number {
-  return base + (Math.random() - 0.5) * spread;
+    // "V.E.R.A" se pronuncia como la palabra "Vera", no deletreada letra a
+    // letra con una pausa de "punto" entre cada una.
+    .replace(/\bV\.\s*E\.\s*R\.\s*A\.?\b/gi, "Vera")
+    .replace(
+      /[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,
+      ""
+    )
+    .replace(/[*_~`#>]/g, "")
+    .replace(/[,.;:]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 }
 
 /**
  * Envuelve la Web Speech API (síntesis de voz) del navegador para que V.E.R.A
  * responda en voz alta sin coste de infraestructura ni claves de API externas.
  * Selecciona automáticamente una voz en español si está disponible.
+ *
+ * Habla la respuesta como una única utterance (no frase a frase): encadenar
+ * utterances separadas con pausas propias sonaba peor, no mejor — cada
+ * arranque de utterance añade su propio silencio de motor, y se sumaba a la
+ * pausa que ya imponíamos nosotros. Dejar que el motor gestione su propia
+ * prosodia sobre texto continuo es lo que suena más natural en la práctica.
  */
 export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): UseSpeechSynthesisReturn {
   const [isSupported, setIsSupported] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
-  const stoppedRef = useRef(false);
-  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) {
@@ -67,8 +77,6 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
   }, [lang]);
 
   const cancel = useCallback(() => {
-    stoppedRef.current = true;
-    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
@@ -79,52 +87,27 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
       if (typeof window === "undefined" || !window.speechSynthesis || !text.trim()) return;
 
       window.speechSynthesis.cancel();
-      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
-      stoppedRef.current = false;
 
-      const sentences = splitIntoSentences(text);
-      if (sentences.length === 0) return;
+      const cleanText = sanitizeForSpeech(text);
+      if (!cleanText) return;
 
-      setIsSpeaking(true);
-      let index = 0;
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = lang;
+      utterance.rate = 0.98;
+      utterance.pitch = 1.0;
+      if (voiceRef.current) utterance.voice = voiceRef.current;
 
-      const speakNext = () => {
-        if (stoppedRef.current || index >= sentences.length) {
-          setIsSpeaking(false);
-          return;
-        }
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
 
-        const utterance = new SpeechSynthesisUtterance(sentences[index]);
-        index++;
-        utterance.lang = lang;
-        // Pequeña variación aleatoria de ritmo/tono entre frases: una única
-        // utterance larga suena plana de principio a fin; variar un poco
-        // frase a frase imita mejor la prosodia de una voz real.
-        utterance.rate = jitter(0.97, 0.08);
-        utterance.pitch = jitter(1.0, 0.08);
-        if (voiceRef.current) utterance.voice = voiceRef.current;
-
-        utterance.onend = () => {
-          if (stoppedRef.current) {
-            setIsSpeaking(false);
-            return;
-          }
-          pauseTimeoutRef.current = setTimeout(speakNext, jitter(160, 100));
-        };
-        utterance.onerror = () => setIsSpeaking(false);
-
-        window.speechSynthesis.speak(utterance);
-      };
-
-      speakNext();
+      window.speechSynthesis.speak(utterance);
     },
     [lang]
   );
 
   useEffect(() => {
     return () => {
-      stoppedRef.current = true;
-      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
       if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     };
   }, []);

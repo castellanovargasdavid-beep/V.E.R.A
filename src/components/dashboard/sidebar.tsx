@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Wand2, Share2, Mic, Cpu } from "lucide-react";
+import { LayoutDashboard, Wand2, Share2, Mic, Cpu, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/builder", label: "Builder", icon: Wand2 },
   { href: "/voice", label: "Modo Voz", icon: Mic },
   { href: "/social", label: "Redes Sociales", icon: Share2 },
+  { href: "/settings", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {

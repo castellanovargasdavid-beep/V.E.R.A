@@ -96,6 +96,12 @@ export const MOCK_SOCIAL_CAMPAIGN: SocialCampaign = {
         "3 segundos para ver en qué se te va el dinero. Así de fácil es con nuestra app 💸",
       hashtags: ["#DineroTok", "#FinanzasApp", "#ParaTi"],
       callToAction: "Prueba el link en nuestra bio",
+      script: {
+        hook: "Cámara en mano, cara seria: \"Si no sabes en qué se te fue el sueldo este mes, para de scrollear.\"",
+        retention:
+          "Corte a pantalla del móvil abriendo la app: se ve el gasto total del mes desglosado por categorías en tiempo real. Voz en off: \"Esto tardó 3 segundos, sin hojas de cálculo, sin bancos raros.\" Corte rápido mostrando cómo se crea una meta de ahorro con un par de toques.",
+        cta: "A cámara, directo: \"Link en la bio, pruébala gratis antes de que llegue tu próxima nómina.\"",
+      },
     },
     {
       platform: "linkedin",

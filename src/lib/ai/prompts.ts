@@ -40,12 +40,17 @@ Devuelve EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown) con 
   "generatedAt": string (ISO 8601),
   "posts": [
     { "platform": "instagram", "headline": string, "caption": string, "hashtags": string[], "callToAction": string },
-    { "platform": "tiktok", "headline": string, "caption": string, "hashtags": string[], "callToAction": string },
+    { "platform": "tiktok", "headline": string, "caption": string, "hashtags": string[], "callToAction": string, "script": { "hook": string, "retention": string, "cta": string } },
     { "platform": "linkedin", "headline": string, "caption": string, "hashtags": string[], "callToAction": string }
   ]
 }
 
-Adapta tono y longitud a cada plataforma: Instagram cercano y visual, TikTok directo y coloquial con gancho fuerte, LinkedIn profesional y orientado a resultados de negocio.`;
+Adapta tono y longitud a cada plataforma: Instagram cercano y visual, TikTok directo y coloquial con gancho fuerte, LinkedIn profesional y orientado a resultados de negocio.
+
+Para el post de "tiktok", además del copy normal, añade siempre el campo "script": un guión paso a paso para grabar el vídeo, pensado para que alguien sin experiencia en cámara lo pueda seguir tal cual.
+- "hook": lo primero que se dice o se muestra en los primeros 1-3 segundos, diseñado para que nadie haga scroll — una pregunta directa, una afirmación polémica o una escena visual fuerte.
+- "retention": qué se cuenta o se muestra en el cuerpo del vídeo para mantener la atención hasta el final — ritmo ágil, sin relleno, en 2-4 frases como mucho.
+- "cta": la llamada a la acción final hablada o en pantalla, coherente con "callToAction" pero redactada para decirse en voz alta a cámara.`;
 
 export function buildSocialCopyUserPrompt(content: string, tone?: string): string {
   return `Contenido de referencia (extraído del proyecto web del usuario):\n"""\n${content}\n"""\n\nTono deseado: ${tone ?? "profesional"}.\n\nGenera el JSON de campaña multicanal siguiendo estrictamente el formato indicado.`;

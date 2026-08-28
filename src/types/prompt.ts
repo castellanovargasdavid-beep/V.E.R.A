@@ -13,12 +13,21 @@ export interface Generation {
 
 export type SocialPlatform = "instagram" | "tiktok" | "linkedin";
 
+/** Guión paso a paso para vídeo corto (TikTok/Reels): gancho, retención y CTA. */
+export interface SocialScript {
+  hook: string;
+  retention: string;
+  cta: string;
+}
+
 export interface SocialPost {
   platform: SocialPlatform;
   headline: string;
   caption: string;
   hashtags: string[];
   callToAction: string;
+  /** Solo presente en TikTok/Reels — el resto de plataformas no llevan guión de vídeo. */
+  script?: SocialScript;
 }
 
 export interface SocialCampaign {

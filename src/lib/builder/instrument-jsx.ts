@@ -12,6 +12,8 @@ export interface InstrumentResult {
   taggedCode: string;
   /** id -> fragmento de código original (para enviar como patch a la IA). */
   fragments: Map<number, CodeFragment>;
+  /** Etiquetas JSX que quedaron sin cerrar al terminar el escaneo — > 0 delata JSX mal formado. */
+  unclosedCount: number;
 }
 
 interface RawTag {
@@ -178,5 +180,5 @@ export function instrumentCode(code: string): InstrumentResult {
     taggedCode = taggedCode.slice(0, t.nameEnd) + insertion + taggedCode.slice(t.nameEnd);
   }
 
-  return { taggedCode, fragments };
+  return { taggedCode, fragments, unclosedCount: stack.length };
 }

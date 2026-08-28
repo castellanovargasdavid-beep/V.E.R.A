@@ -8,6 +8,7 @@ import type { VeraCoreState } from "@/components/VeraCore";
 import { LivePreview } from "@/components/builder/live-preview";
 import { ProjectBriefPanel, type BriefItem } from "@/components/landing/project-brief-panel";
 import { TodoListPanel, type TodoTask } from "@/components/landing/todo-list-panel";
+import { AgentActivityHUD } from "@/components/AgentActivityHUD";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -15,7 +16,9 @@ import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
 import { usePremiumVoice } from "@/hooks/use-premium-voice";
 import { useMicAmplitude } from "@/hooks/use-mic-amplitude";
 import { extractCodeBlock } from "@/lib/ai/mock-responses";
+import { looksLikeUiGenerationRequest } from "@/lib/ai/router";
 import { cn, generateId } from "@/lib/utils";
+import type { AgentEvent, OrchestrationFinalEvent, OrchestrationStreamEvent } from "@/types/agents";
 
 // La esfera neuronal usa @react-three/fiber (WebGL) — se carga solo en el
 // cliente. Sin esto, el intento de montar el <Canvas> durante el renderizado
@@ -74,6 +77,9 @@ export function VeraHero() {
   const [briefItems, setBriefItems] = useState<BriefItem[]>([]);
   const [tasks, setTasks] = useState<TodoTask[]>([]);
   const seenTaskTextsRef = useRef<Set<string>>(new Set());
+  const [agentEvents, setAgentEvents] = useState<AgentEvent[]>([]);
+  const [agentFinal, setAgentFinal] = useState<OrchestrationFinalEvent | null>(null);
+  const [agentFatal, setAgentFatal] = useState<string | null>(null);
 
   const { isSupported: sttSupported, isListening, start, stop } = useSpeechRecognition({
     onFinalResult: (transcript) => handleSubmit(transcript),
@@ -109,6 +115,22 @@ export function VeraHero() {
     setBriefItems((prev) => [{ id: generateId("brief"), ...item }, ...prev].slice(0, MAX_BRIEF_ITEMS));
   }
 
+  async function speakAndFinish(finalProse: string) {
+    if (!isMuted && finalProse.trim()) {
+      setCoreState("speaking");
+      const playedPremium = await premium.speak(finalProse);
+      if (!playedPremium) {
+        if (ttsSupported) {
+          speak(finalProse);
+        } else {
+          setCoreState("idle");
+        }
+      }
+    } else {
+      setCoreState("idle");
+    }
+  }
+
   async function handleSubmit(text: string) {
     const value = text.trim();
     if (!value || isStreaming) return;
@@ -124,8 +146,22 @@ export function VeraHero() {
     // prompt nuevo empieza su propia lista desde cero.
     setTasks([]);
     seenTaskTextsRef.current = new Set();
+    setAgentEvents([]);
+    setAgentFinal(null);
+    setAgentFatal(null);
     addBriefItem({ kind: "objective", label: "Objetivo", text: value });
 
+    // Pedir una interfaz activa el pipeline multi-agente (Architect ->
+    // Copywriter + SEO en paralelo -> Guardian); una pregunta conversacional
+    // sigue por el chat de una sola llamada, más barato y más rápido.
+    if (looksLikeUiGenerationRequest(value)) {
+      await runOrchestratedGeneration(value);
+    } else {
+      await runPlainChat(value);
+    }
+  }
+
+  async function runPlainChat(value: string) {
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -174,18 +210,70 @@ export function VeraHero() {
         });
       }
 
-      if (!isMuted && finalProse.trim()) {
-        setCoreState("speaking");
-        const playedPremium = await premium.speak(finalProse);
-        if (!playedPremium) {
-          if (ttsSupported) {
-            speak(finalProse);
-          } else {
-            setCoreState("idle");
+      await speakAndFinish(finalProse);
+    } catch {
+      setError("No se pudo conectar con V.E.R.A. Verifica tu red o vuelve a intentarlo.");
+      setIsStreaming(false);
+      setCoreState("idle");
+    }
+  }
+
+  async function runOrchestratedGeneration(value: string) {
+    let finalProse = "";
+    let sawFatal = false;
+
+    try {
+      const response = await fetch("/api/agents/orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: value }),
+      });
+
+      if (!response.body) throw new Error("Sin cuerpo de respuesta");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value: chunk } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(chunk, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as OrchestrationStreamEvent;
+
+          if (event.type === "agent") {
+            setAgentEvents((prev) => [...prev, event]);
+          } else if (event.type === "final") {
+            setAgentFinal(event);
+            setCode(event.code);
+            setProse(event.prose);
+            finalProse = event.prose;
+            if (event.prose.trim()) {
+              addBriefItem({ kind: "proposal", label: "V.E.R.A propone", text: event.prose });
+            }
+            addBriefItem({
+              kind: "deliverable",
+              label: "Entregable",
+              text: "Interfaz generada por el pipeline multi-agente — revísala en el panel central o ábrela en el Builder.",
+            });
+          } else if (event.type === "fatal") {
+            sawFatal = true;
+            setAgentFatal(event.message);
+            setError(event.message);
           }
         }
-      } else {
+      }
+
+      setIsStreaming(false);
+      if (sawFatal) {
         setCoreState("idle");
+      } else {
+        await speakAndFinish(finalProse);
       }
     } catch {
       setError("No se pudo conectar con V.E.R.A. Verifica tu red o vuelve a intentarlo.");
@@ -237,6 +325,11 @@ export function VeraHero() {
             realAmplitudeSpeaking={premium.isSpeaking}
             className="mb-8 w-56 sm:w-72 lg:w-80"
           />
+
+          {/* Telemetría del pipeline multi-agente, anclada justo debajo del
+              núcleo — solo aparece cuando una petición de interfaz activa a
+              los sub-agentes. */}
+          <AgentActivityHUD events={agentEvents} final={agentFinal} fatal={agentFatal} />
 
           {/* Lo que dice V.E.R.A: un subtítulo efímero, no un bloque de
               texto permanente — la esfera sigue siendo la protagonista. */}

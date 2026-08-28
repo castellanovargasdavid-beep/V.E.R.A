@@ -91,3 +91,14 @@ export function routeMessage(input: {
 export function getModelId(tier: ModelTier): string {
   return MODEL_IDS[tier];
 }
+
+/**
+ * Heurística ligera (sin IA) para saber si un mensaje pide construir una
+ * interfaz — la usa tanto el servidor (routeMessage) como el cliente, para
+ * decidir si el Hero debe invocar el pipeline multi-agente en vez del chat
+ * conversacional de una sola llamada.
+ */
+export function looksLikeUiGenerationRequest(content: string): boolean {
+  const text = content.toLowerCase();
+  return CODE_GENERATION_KEYWORDS.some((kw) => text.includes(kw));
+}

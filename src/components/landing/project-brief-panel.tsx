@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 
 export type BriefItemKind = "objective" | "proposal" | "deliverable";
@@ -20,8 +21,13 @@ const KIND_STYLES: Record<BriefItemKind, string> = {
  * plantea el usuario, propuestas de V.E.R.A y entregables generados) para
  * que no se pierda el hilo del proyecto. Se deriva de los mismos turnos del
  * chat — no requiere una llamada extra al modelo para "extraer" nada.
+ *
+ * Envuelto en `memo`: el padre (VeraHero) se re-renderiza a ~60fps
+ * mientras hay audio activo (el nivel del micrófono/voz llega como estado
+ * de React), pero `items` solo cambia cuando de verdad hay un turno nuevo
+ * — así este panel no vuelve a reconciliar su lista en cada tick de audio.
  */
-export function ProjectBriefPanel({ items }: { items: BriefItem[] }) {
+export const ProjectBriefPanel = memo(function ProjectBriefPanel({ items }: { items: BriefItem[] }) {
   return (
     <div className="rounded-xl border border-cyan-500/20 bg-slate-900/40 p-4 backdrop-blur-md">
       <h2 className="mb-3 font-mono text-sm font-semibold text-hud-cyan">
@@ -52,4 +58,4 @@ export function ProjectBriefPanel({ items }: { items: BriefItem[] }) {
       )}
     </div>
   );
-}
+});

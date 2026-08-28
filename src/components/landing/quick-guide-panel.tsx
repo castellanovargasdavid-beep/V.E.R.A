@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 const TIPS = [
   {
     title: "Habla o escribe",
@@ -25,8 +27,12 @@ const TIPS = [
  * Panel HUD derecho: guía estática y en lenguaje sencillo para quien no
  * tiene conocimientos técnicos, con los pasos prácticos para llevar lo que
  * propone V.E.R.A hasta tenerlo publicado.
+ *
+ * Sin props — `memo` hace que este panel no vuelva a reconciliar su
+ * contenido (siempre idéntico) en cada re-render de VeraHero causado por
+ * los ticks de audio a ~60fps.
  */
-export function QuickGuidePanel() {
+export const QuickGuidePanel = memo(function QuickGuidePanel() {
   return (
     <div className="rounded-xl border border-amber-500/20 bg-slate-900/40 p-4 backdrop-blur-md">
       <h2 className="mb-3 font-mono text-sm font-semibold text-amber-400">⚡ Quick Start / Fast Guide</h2>
@@ -45,4 +51,4 @@ export function QuickGuidePanel() {
       </ol>
     </div>
   );
-}
+});

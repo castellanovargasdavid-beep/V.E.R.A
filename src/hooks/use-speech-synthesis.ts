@@ -55,17 +55,39 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
     }
     setIsSupported(true);
 
+    // Opción C del motor de voz (100% gratis, sin claves): cuando no hay
+    // ElevenLabs ni OpenAI TTS configurados, se elige la voz del sistema más
+    // formal disponible — nombres concretos conocidos por sonar serios y
+    // masculinos (el registro de mayordomo que pide el perfil de V.E.R.A.)
+    // antes que una heurística genérica de "alta calidad".
+    const PREFERRED_VOICE_NAMES = [
+      /microsoft\s+george/i, // Windows es-GB/en-GB, grave y formal
+      /microsoft\s+pablo/i, // Windows es-ES neural masculino
+      /microsoft\s+jorge/i, // Windows es-MX neural masculino
+      /google\s+uk\s+english\s+male/i,
+      /google\s+español/i,
+    ];
+
     function pickVoice() {
       const voices = window.speechSynthesis.getVoices();
+      const isPreferredName = (v: SpeechSynthesisVoice) => PREFERRED_VOICE_NAMES.some((re) => re.test(v.name));
+      const isMasculine = (v: SpeechSynthesisVoice) =>
+        /\b(male|hombre|masculin[oa])\b/i.test(v.name) && !/\b(female|mujer|femenin[oa])\b/i.test(v.name);
       const isHighQuality = (v: SpeechSynthesisVoice) =>
         /natural|neural|online|premium|enhanced|google/i.test(v.name);
 
       const spanishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase()));
       const anySpanishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("es"));
+      const englishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
 
       voiceRef.current =
+        spanishVoices.find(isPreferredName) ??
+        anySpanishVoices.find(isPreferredName) ??
+        spanishVoices.find(isMasculine) ??
+        anySpanishVoices.find(isMasculine) ??
         spanishVoices.find(isHighQuality) ??
         anySpanishVoices.find(isHighQuality) ??
+        englishVoices.find(isPreferredName) ??
         spanishVoices[0] ??
         anySpanishVoices[0] ??
         null;
@@ -93,8 +115,11 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = lang;
-      utterance.rate = 0.98;
-      utterance.pitch = 1.0;
+      // Cadencia pausada y registro algo más grave — el mismo perfil
+      // "mayordomo calmado" que los parámetros de ElevenLabs/OpenAI en
+      // lib/tts.ts, adaptado a lo que admite la Web Speech API.
+      utterance.rate = 0.95;
+      utterance.pitch = 0.9;
       if (voiceRef.current) utterance.voice = voiceRef.current;
 
       utterance.onstart = () => setIsSpeaking(true);

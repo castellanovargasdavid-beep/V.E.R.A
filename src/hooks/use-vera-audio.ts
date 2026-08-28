@@ -2,22 +2,24 @@
 
 import { useCallback, useRef, useState } from "react";
 
-interface UsePremiumVoiceReturn {
+interface UseVeraAudioReturn {
   isSpeaking: boolean;
   amplitude: number;
-  /** Intenta reproducir con voz neuronal. Devuelve false si no está
-   *  disponible (sin clave configurada o error), para que el caller
-   *  recurra a la voz del navegador. */
+  /** Intenta reproducir con el motor neuronal (ElevenLabs u OpenAI TTS, vía
+   *  /api/voice/synthesize). Devuelve false si ninguno está disponible (sin
+   *  clave configurada o error), para que el caller recurra a la Opción C:
+   *  la Web Speech API nativa del navegador. */
   speak: (text: string) => Promise<boolean>;
   stop: () => void;
 }
 
 /**
- * Reproduce voz neuronal (ElevenLabs, vía /api/voice/speak) y analiza su
- * audio en tiempo real con Web Audio API para que la esfera reaccione a la
- * amplitud real de la voz, no a una animación simulada.
+ * Reproduce la voz neuronal de V.E.R.A. (Opción A/B del motor modular en
+ * `lib/tts.ts`) y analiza su audio en tiempo real con Web Audio API para
+ * que el núcleo 3D reaccione a la amplitud y frecuencias reales de la voz
+ * mientras habla, no a una animación simulada.
  */
-export function usePremiumVoice(): UsePremiumVoiceReturn {
+export function useVeraAudio(): UseVeraAudioReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [amplitude, setAmplitude] = useState(0);
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -33,7 +35,7 @@ export function usePremiumVoice(): UsePremiumVoiceReturn {
     (text: string): Promise<boolean> => {
       stop();
 
-      return fetch("/api/voice/speak", {
+      return fetch("/api/voice/synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),

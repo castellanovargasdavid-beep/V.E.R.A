@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
-import { usePremiumVoice } from "@/hooks/use-premium-voice";
+import { useVeraAudio } from "@/hooks/use-vera-audio";
 import { useMicAmplitude } from "@/hooks/use-mic-amplitude";
 import { generateId } from "@/lib/utils";
 import type { VoiceState, VoiceTurn } from "@/types/voice";
@@ -29,7 +29,7 @@ export function VoiceAssistant() {
   turnsRef.current = turns;
 
   const { speak, cancel: cancelSpeech, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
-  const premium = usePremiumVoice();
+  const veraAudio = useVeraAudio();
 
   const { isSupported: sttSupported, isListening, interimTranscript, error: sttError, start, stop } =
     useSpeechRecognition({
@@ -46,10 +46,10 @@ export function VoiceAssistant() {
   }, [isListening]);
 
   useEffect(() => {
-    if (!isSpeaking && !premium.isSpeaking) {
+    if (!isSpeaking && !veraAudio.isSpeaking) {
       setPhase((prev) => (prev === "speaking" ? "idle" : prev));
     }
-  }, [isSpeaking, premium.isSpeaking]);
+  }, [isSpeaking, veraAudio.isSpeaking]);
 
   async function handleUserMessage(text: string) {
     if (!text.trim()) return;
@@ -96,8 +96,8 @@ export function VoiceAssistant() {
 
       if (!isMuted) {
         setPhase("speaking");
-        const playedPremium = await premium.speak(assistantTurn.text);
-        if (!playedPremium) {
+        const playedNeural = await veraAudio.speak(assistantTurn.text);
+        if (!playedNeural) {
           if (ttsSupported) {
             speak(assistantTurn.text);
           } else {
@@ -128,7 +128,7 @@ export function VoiceAssistant() {
     }
     if (phase === "speaking") {
       cancelSpeech();
-      premium.stop();
+      veraAudio.stop();
     }
     start();
   }
@@ -136,7 +136,7 @@ export function VoiceAssistant() {
   function handleToggleMute() {
     if (!isMuted) {
       cancelSpeech();
-      premium.stop();
+      veraAudio.stop();
     }
     setIsMuted((m) => !m);
   }
@@ -164,8 +164,8 @@ export function VoiceAssistant() {
         >
           <VoiceOrb
             state={orbState}
-            amplitude={phase === "listening" ? micAmplitude : premium.isSpeaking ? premium.amplitude : 0}
-            realAmplitudeSpeaking={premium.isSpeaking}
+            amplitude={phase === "listening" ? micAmplitude : veraAudio.isSpeaking ? veraAudio.amplitude : 0}
+            realAmplitudeSpeaking={veraAudio.isSpeaking}
             size={260}
           />
           {sttSupported && (

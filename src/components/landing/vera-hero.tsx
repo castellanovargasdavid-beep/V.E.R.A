@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { useSpeechSynthesis } from "@/hooks/use-speech-synthesis";
-import { usePremiumVoice } from "@/hooks/use-premium-voice";
+import { useVeraAudio } from "@/hooks/use-vera-audio";
 import { useMicAmplitude } from "@/hooks/use-mic-amplitude";
 import { extractCodeBlock } from "@/lib/ai/mock-responses";
 import { looksLikeUiGenerationRequest } from "@/lib/ai/router";
@@ -86,7 +86,7 @@ export function VeraHero() {
   });
   const micAmplitude = useMicAmplitude(isListening);
   const { speak, cancel: cancelSpeech, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
-  const premium = usePremiumVoice();
+  const veraAudio = useVeraAudio();
 
   useEffect(() => {
     setCoreState((prev) => {
@@ -96,10 +96,10 @@ export function VeraHero() {
   }, [isListening]);
 
   useEffect(() => {
-    if (!isSpeaking && !premium.isSpeaking) {
+    if (!isSpeaking && !veraAudio.isSpeaking) {
       setCoreState((prev) => (prev === "speaking" ? "idle" : prev));
     }
-  }, [isSpeaking, premium.isSpeaking]);
+  }, [isSpeaking, veraAudio.isSpeaking]);
 
   // El subtítulo es efímero: aparece mientras V.E.R.A responde y se
   // desvanece solo un rato después de callar, para que la protagonista
@@ -118,8 +118,8 @@ export function VeraHero() {
   async function speakAndFinish(finalProse: string) {
     if (!isMuted && finalProse.trim()) {
       setCoreState("speaking");
-      const playedPremium = await premium.speak(finalProse);
-      if (!playedPremium) {
+      const playedNeural = await veraAudio.speak(finalProse);
+      if (!playedNeural) {
         if (ttsSupported) {
           speak(finalProse);
         } else {
@@ -289,7 +289,7 @@ export function VeraHero() {
     }
     if (coreState === "speaking") {
       cancelSpeech();
-      premium.stop();
+      veraAudio.stop();
     }
     start();
   }
@@ -297,7 +297,7 @@ export function VeraHero() {
   function handleToggleMute() {
     if (!isMuted) {
       cancelSpeech();
-      premium.stop();
+      veraAudio.stop();
     }
     setIsMuted((m) => !m);
   }
@@ -321,8 +321,8 @@ export function VeraHero() {
         <div className="flex flex-col items-center lg:order-2 lg:col-span-6">
           <VeraCore
             state={coreState}
-            amplitude={coreState === "listening" ? micAmplitude : premium.isSpeaking ? premium.amplitude : 0}
-            realAmplitudeSpeaking={premium.isSpeaking}
+            amplitude={coreState === "listening" ? micAmplitude : veraAudio.isSpeaking ? veraAudio.amplitude : 0}
+            realAmplitudeSpeaking={veraAudio.isSpeaking}
             className="mb-8 w-56 sm:w-72 lg:w-80"
           />
 

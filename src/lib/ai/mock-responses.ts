@@ -27,7 +27,7 @@ export function buildMockChatReply(userMessage: string, mode?: "voice"): string 
 
   if (isGenerationRequest) {
     return [
-      "Modo simulación activo (no se detectó ANTHROPIC_API_KEY). Genero una interfaz de referencia para que puedas seguir iterando el flujo:",
+      "Modo simulación activo (no se detectó ANTHROPIC_API_KEY). Genero una interfaz de referencia para que puedas seguir iterando el flujo. [[TAREA: Envía tu logo y fotos reales para reemplazar los de referencia]] En cuanto los tenga, [[TAREA: confirma tus colores de marca]] y ajusto la paleta a lo que definas:",
       "",
       "```tsx",
       MOCK_STARTER_CODE.trim(),

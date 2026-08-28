@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Mic, MicOff, SendHorizonal, X, ArrowRight, Loader2, Volume2, VolumeX } from "lucide-react";
 import type { VeraCoreState } from "@/components/VeraCore";
 import { LivePreview } from "@/components/builder/live-preview";
 import { ProjectBriefPanel, type BriefItem } from "@/components/landing/project-brief-panel";
-import { TodoListPanel } from "@/components/landing/todo-list-panel";
+import { TodoListPanel, type TodoTask } from "@/components/landing/todo-list-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -34,6 +34,12 @@ const SUGGESTIONS = [
 ];
 
 const MAX_BRIEF_ITEMS = 8;
+const MAX_TASKS = 20;
+
+// Marca que el modelo inserta en su propia prosa cuando le pide algo
+// concreto al usuario (ver JARVIS_SYSTEM_PROMPT) — se extrae en vivo
+// mientras llega el streaming y se limpia del texto que se muestra/habla.
+const TAREA_TAG_RE = /\[\[TAREA:\s*([^\]]+)\]\]/g;
 
 /**
  * Quita los bloques de código del texto para mostrar solo la parte
@@ -48,6 +54,14 @@ function stripCodeBlocks(text: string): string {
   return visible.trim();
 }
 
+function stripTareaTags(text: string): string {
+  return text.replace(TAREA_TAG_RE, "").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+function extractTareaTags(text: string): string[] {
+  return Array.from(text.matchAll(TAREA_TAG_RE), (match) => match[1].trim()).filter(Boolean);
+}
+
 export function VeraHero() {
   const [input, setInput] = useState("");
   const [coreState, setCoreState] = useState<VeraCoreState>("idle");
@@ -58,6 +72,8 @@ export function VeraHero() {
   const [isMuted, setIsMuted] = useState(false);
   const [captionVisible, setCaptionVisible] = useState(false);
   const [briefItems, setBriefItems] = useState<BriefItem[]>([]);
+  const [tasks, setTasks] = useState<TodoTask[]>([]);
+  const seenTaskTextsRef = useRef<Set<string>>(new Set());
 
   const { isSupported: sttSupported, isListening, start, stop } = useSpeechRecognition({
     onFinalResult: (transcript) => handleSubmit(transcript),
@@ -123,11 +139,22 @@ export function VeraHero() {
         const { done, value: chunk } = await reader.read();
         if (done) break;
         fullText += decoder.decode(chunk, { stream: true });
-        setProse(stripCodeBlocks(fullText));
+        setProse(stripTareaTags(stripCodeBlocks(fullText)));
+
+        // Tareas en vivo: cada vez que llega una marca [[TAREA: ...]]
+        // completa en el streaming, se añade al registro al instante — no
+        // hace falta esperar a que termine la respuesta.
+        const newTasks = extractTareaTags(fullText).filter((text) => !seenTaskTextsRef.current.has(text));
+        if (newTasks.length > 0) {
+          newTasks.forEach((text) => seenTaskTextsRef.current.add(text));
+          setTasks((prev) =>
+            [...prev, ...newTasks.map((text) => ({ id: generateId("task"), text }))].slice(-MAX_TASKS)
+          );
+        }
       }
 
       const finalCode = extractCodeBlock(fullText);
-      const finalProse = stripCodeBlocks(fullText);
+      const finalProse = stripTareaTags(stripCodeBlocks(fullText));
       setCode(finalCode);
       setProse(finalProse);
       setIsStreaming(false);
@@ -340,7 +367,7 @@ export function VeraHero() {
         </div>
 
         <div className="lg:order-3 lg:col-span-3">
-          <TodoListPanel />
+          <TodoListPanel tasks={tasks} />
         </div>
       </div>
     </section>

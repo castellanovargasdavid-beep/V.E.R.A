@@ -8,13 +8,14 @@ export interface SynthesisResult {
   engine: TtsEngine;
 }
 
-// Voz premade "George" de ElevenLabs — timbre británico, cálido y contenido,
-// el más cercano de las voces de catálogo al perfil de mayordomo de
-// ingeniería de élite que pide V.E.R.A (frente a Adam/Brian, más
-// americanos y "narrador de documental"). Los IDs de voces premade de
-// ElevenLabs pueden cambiar con el tiempo: si esta ya no resuelve en tu
-// cuenta, sustitúyela por la que prefieras desde tu voice library.
-const DEFAULT_ELEVENLABS_VOICE_ID = "JBFqnCBsd6RMkjVDRZzb";
+// Voz premade "Arnold" de ElevenLabs — registro más grave y maduro,
+// "hombre mayor" antes que mayordomo refinado: se ajusta mejor al timbre
+// tipo Tony Stark que pide V.E.R.A que George (más pulido/británico) o
+// Adam (grave pero más joven). Los IDs de voces premade de ElevenLabs
+// pueden cambiar con el tiempo: si esta ya no resuelve en tu cuenta,
+// sustitúyela por la que prefieras desde tu voice library — prueba
+// también "Clyde" si buscas algo más rasgado/curtido.
+const DEFAULT_ELEVENLABS_VOICE_ID = "VR6AewLTigWG4xSOukaG";
 const DEFAULT_ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
 
 export function isElevenLabsConfigured(): boolean {

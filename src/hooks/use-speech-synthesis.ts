@@ -57,13 +57,14 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
 
     // Opción C del motor de voz (100% gratis, sin claves): cuando no hay
     // ElevenLabs ni OpenAI TTS configurados, se elige la voz del sistema más
-    // formal disponible — nombres concretos conocidos por sonar serios y
-    // masculinos (el registro de mayordomo que pide el perfil de V.E.R.A.)
-    // antes que una heurística genérica de "alta calidad".
+    // grave y madura disponible — un registro de "hombre mayor" tipo Tony
+    // Stark, no el de un mayordomo pulido — antes que una heurística
+    // genérica de "alta calidad".
     const PREFERRED_VOICE_NAMES = [
-      /microsoft\s+george/i, // Windows es-GB/en-GB, grave y formal
       /microsoft\s+pablo/i, // Windows es-ES neural masculino
       /microsoft\s+jorge/i, // Windows es-MX neural masculino
+      /microsoft\s+david/i, // Windows en-US, grave y adulto
+      /microsoft\s+george/i, // Windows es-GB/en-GB, formal
       /google\s+uk\s+english\s+male/i,
       /google\s+español/i,
     ];
@@ -115,11 +116,12 @@ export function useSpeechSynthesis({ lang = "es-ES" }: { lang?: string } = {}): 
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = lang;
-      // Cadencia pausada y registro algo más grave — el mismo perfil
-      // "mayordomo calmado" que los parámetros de ElevenLabs/OpenAI en
-      // lib/tts.ts, adaptado a lo que admite la Web Speech API.
-      utterance.rate = 0.95;
-      utterance.pitch = 0.9;
+      // Cadencia pausada y registro grave — el tono "hombre mayor" que
+      // pide el perfil, adaptado a lo que admite la Web Speech API (el
+      // pitch es la única palanca real para sonar más maduro cuando ni
+      // siquiera hay una voz masculina concreta instalada en el sistema).
+      utterance.rate = 0.93;
+      utterance.pitch = 0.8;
       if (voiceRef.current) utterance.voice = voiceRef.current;
 
       utterance.onstart = () => setIsSpeaking(true);

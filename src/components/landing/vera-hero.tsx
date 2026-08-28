@@ -120,6 +120,10 @@ export function VeraHero() {
     setCaptionVisible(true);
     setCoreState("thinking");
     setIsStreaming(true);
+    // Las tareas son de esta respuesta, no un historial acumulado: cada
+    // prompt nuevo empieza su propia lista desde cero.
+    setTasks([]);
+    seenTaskTextsRef.current = new Set();
     addBriefItem({ kind: "objective", label: "Objetivo", text: value });
 
     try {
@@ -141,9 +145,9 @@ export function VeraHero() {
         fullText += decoder.decode(chunk, { stream: true });
         setProse(stripTareaTags(stripCodeBlocks(fullText)));
 
-        // Tareas en vivo: cada vez que llega una marca [[TAREA: ...]]
-        // completa en el streaming, se añade al registro al instante — no
-        // hace falta esperar a que termine la respuesta.
+        // Tareas en vivo de ESTA respuesta: cada vez que llega una marca
+        // [[TAREA: ...]] completa en el streaming, se añade a la lista al
+        // instante — no hace falta esperar a que termine la respuesta.
         const newTasks = extractTareaTags(fullText).filter((text) => !seenTaskTextsRef.current.has(text));
         if (newTasks.length > 0) {
           newTasks.forEach((text) => seenTaskTextsRef.current.add(text));

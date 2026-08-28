@@ -8,15 +8,17 @@ export interface TodoTask {
 }
 
 /**
- * Panel HUD derecho: no es una guía estática — es un registro en vivo de lo
- * que V.E.R.A va pidiendo durante la conversación (logo, textos, dominio,
+ * Panel HUD derecho: no es una guía estática — es la lista en vivo de lo
+ * que V.E.R.A pide en su respuesta más reciente (logo, textos, dominio,
  * decisiones...). Cada tarea nace de una marca [[TAREA: ...]] que el modelo
  * inserta en su propia respuesta (ver JARVIS_SYSTEM_PROMPT) y que VeraHero
  * extrae del streaming; este panel solo la muestra y deja marcarla como
  * hecha.
  *
- * El check es estado local del panel (no persiste): la lista pertenece a
- * la sesión de chat actual, igual que el Project Brief de al lado.
+ * La lista es solo de la respuesta en curso: VeraHero la vacía en cuanto
+ * el usuario envía un nuevo prompt, así que `tasks` siempre refleja la
+ * última respuesta, no un historial acumulado de toda la conversación.
+ * El check es estado local del panel (no persiste entre respuestas).
  */
 export const TodoListPanel = memo(function TodoListPanel({ tasks }: { tasks: TodoTask[] }) {
   const [checked, setChecked] = useState<Set<string>>(new Set());

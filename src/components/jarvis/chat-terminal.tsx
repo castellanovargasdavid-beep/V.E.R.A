@@ -12,11 +12,14 @@ import type { ChatMessage, ModelTier } from "@/types/chat";
 export function ChatTerminal({
   initialMessages = [],
   onCodeGenerated,
+  onGenerationTelemetry,
   intent = "chat",
   className,
 }: {
   initialMessages?: ChatMessage[];
-  onCodeGenerated?: (code: string) => void;
+  onCodeGenerated?: (code: string, prompt: string) => void;
+  /** Latencia y tier de modelo de cada respuesta, para el widget de telemetría. */
+  onGenerationTelemetry?: (info: { tier: ModelTier; latencyMs: number; inputChars: number; outputChars: number }) => void;
   intent?: "chat" | "ui_generation";
   className?: string;
 }) {
@@ -46,6 +49,7 @@ export function ChatTerminal({
 
     setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setIsStreaming(true);
+    const startedAt = performance.now();
 
     try {
       const response = await fetch("/api/chat", {
@@ -75,8 +79,15 @@ export function ChatTerminal({
         );
       }
 
+      onGenerationTelemetry?.({
+        tier: modelTier,
+        latencyMs: performance.now() - startedAt,
+        inputChars: content.length,
+        outputChars: fullText.length,
+      });
+
       const code = extractCodeBlock(fullText);
-      if (code && onCodeGenerated) onCodeGenerated(code);
+      if (code && onCodeGenerated) onCodeGenerated(code, content);
     } catch {
       setMessages((prev) =>
         prev.map((m) =>

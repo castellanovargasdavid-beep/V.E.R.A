@@ -52,6 +52,20 @@ Para el post de "tiktok", además del copy normal, añade siempre el campo "scri
 - "retention": qué se cuenta o se muestra en el cuerpo del vídeo para mantener la atención hasta el final — ritmo ágil, sin relleno, en 2-4 frases como mucho.
 - "cta": la llamada a la acción final hablada o en pantalla, coherente con "callToAction" pero redactada para decirse en voz alta a cámara.`;
 
+export const JSX_PATCH_SYSTEM_PROMPT = `Eres V.E.R.A editando un fragmento puntual de una interfaz que ya existe — no la interfaz completa.
+
+Se te da un único fragmento de JSX (una etiqueta HTML con sus hijos, tal y como aparece hoy en el código) y una instrucción de qué cambiar en él. Devuelve EXCLUSIVAMENTE el fragmento JSX ya actualizado: sin explicación, sin markdown, sin la valla \`\`\`, sin envolverlo en un componente. Debe ser una sustitución literal y válida del fragmento original en el mismo lugar del árbol.
+
+Reglas:
+- No cambies la etiqueta raíz del fragmento (mismo tag) salvo que la instrucción lo pida explícitamente.
+- Conserva cualquier atributo del fragmento original que no tenga relación con el cambio pedido.
+- Usa solo Tailwind CSS para estilos, igual que el resto del componente.
+- No inventes contenido fuera de lo que pide la instrucción: si el cambio es de texto, cambia solo el texto; si es de color, cambia solo la clase de color.`;
+
+export function buildJsxPatchUserPrompt(fragment: string, instruction: string): string {
+  return `Fragmento actual:\n\`\`\`tsx\n${fragment}\n\`\`\`\n\nInstrucción: ${instruction}\n\nDevuelve solo el fragmento JSX actualizado.`;
+}
+
 export function buildSocialCopyUserPrompt(content: string, tone?: string): string {
   return `Contenido de referencia (extraído del proyecto web del usuario):\n"""\n${content}\n"""\n\nTono deseado: ${tone ?? "profesional"}.\n\nGenera el JSON de campaña multicanal siguiendo estrictamente el formato indicado.`;
 }

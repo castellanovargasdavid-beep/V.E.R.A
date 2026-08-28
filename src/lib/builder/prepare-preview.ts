@@ -33,13 +33,63 @@ export function prepareComponentSource(raw: string): PreparedComponent {
 }
 
 /**
+ * Script inyectado en el iframe cuando el click-to-edit está activo: captura
+ * el clic sobre cualquier elemento con `data-vera-id` (inyectado por
+ * `instrumentCode`), le pone el marco luminoso HUD y avisa al padre por
+ * `postMessage` con su id y su posición — el padre no puede leer el DOM del
+ * iframe directamente (origen aislado por el sandbox), así que toda la
+ * comunicación bidireccional pasa por mensajes.
+ */
+const CLICK_TO_EDIT_SCRIPT = `
+<script>
+(function () {
+  function clearSelection() {
+    document.querySelectorAll('[data-vera-selected]').forEach(function (n) {
+      n.removeAttribute('data-vera-selected');
+      n.style.outline = '';
+      n.style.boxShadow = '';
+      n.style.outlineOffset = '';
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && el !== document.body && !el.hasAttribute('data-vera-id')) {
+      el = el.parentElement;
+    }
+    if (!el || el === document.body) return;
+    e.preventDefault();
+    e.stopPropagation();
+    clearSelection();
+    el.setAttribute('data-vera-selected', 'true');
+    el.style.outline = '2px solid #00f0ff';
+    el.style.boxShadow = '0 0 10px rgba(0,240,255,0.5)';
+    el.style.outlineOffset = '2px';
+    var rect = el.getBoundingClientRect();
+    window.parent.postMessage({
+      type: 'vera:select',
+      id: Number(el.getAttribute('data-vera-id')),
+      tag: el.tagName.toLowerCase(),
+      text: (el.textContent || '').trim().slice(0, 80),
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height }
+    }, '*');
+  }, true);
+
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'vera:deselect') clearSelection();
+  });
+})();
+</script>`;
+
+/**
  * Construye el documento HTML autocontenido del sandbox de previsualización.
  * Usa React + Babel standalone vía CDN para transpilar y renderizar JSX
  * en tiempo real dentro del iframe, sin recargar la página anfitriona.
  */
-export function buildPreviewHtml(rawCode: string): string {
+export function buildPreviewHtml(rawCode: string, options?: { enableClickToEdit?: boolean }): string {
   const { source, componentName } = prepareComponentSource(rawCode);
   const safeSource = source.replace(/<\/script>/g, "<\\/script>");
+  const clickToEditScript = options?.enableClickToEdit ? CLICK_TO_EDIT_SCRIPT : "";
 
   return `<!doctype html>
 <html lang="es">
@@ -69,6 +119,7 @@ try {
   document.getElementById("preview-error").textContent = "Error al renderizar la vista previa:\\n" + (err && err.message ? err.message : String(err));
 }
 </script>
+${clickToEditScript}
 </body>
 </html>`;
 }

@@ -39,7 +39,7 @@ export const ProjectBriefPanel = memo(function ProjectBriefPanel({ items }: { it
           objetivos, propuestas y entregables de tu proyecto.
         </p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="hud-scroll max-h-[26rem] space-y-3 overflow-y-auto pr-2">
           {items.map((item) => (
             <li
               key={item.id}

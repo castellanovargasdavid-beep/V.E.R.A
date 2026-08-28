@@ -50,7 +50,7 @@ export const TodoListPanel = memo(function TodoListPanel({ tasks }: { tasks: Tod
           de ti para avanzar — tu logo, tus textos, tu dominio…
         </p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="hud-scroll max-h-[26rem] space-y-2.5 overflow-y-auto pr-2">
           {tasks.map((task) => {
             const isChecked = checked.has(task.id);
             return (

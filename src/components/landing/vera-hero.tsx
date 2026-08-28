@@ -225,34 +225,11 @@ export function VeraHero() {
 
   return (
     <section className="relative mx-auto max-w-6xl px-6 py-20 sm:py-24">
-      {/* Top header: propuesta de valor, centrada */}
-      <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <span className="mb-6 flex items-center gap-2 rounded-full border border-hud-cyan/30 bg-hud-cyan/10 px-4 py-1.5 text-xs font-medium text-hud-cyan backdrop-blur-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-hud-cyan opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-hud-cyan" />
-          </span>
-          V.E.R.A operativa — habla o escribe para empezar
-        </span>
-
-        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-          Dile a V.E.R.A qué quieres crear
-          <br />
-          <span className="bg-gradient-to-r from-hud-cyan to-hud-blue bg-clip-text text-transparent">
-            y lo verás tomar forma al instante
-          </span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-          Tu copiloto de diseño web y redes sociales. Sin código, sin fricción, sin coste de
-          infraestructura inicial.
-        </p>
-      </div>
-
       {/* Panel de mando: 3 columnas en escritorio. En móvil se apila en
           orden de DOM (centro -> briefing -> guía), que es justo el orden
           Esfera -> Input -> Briefing -> Guía que se pide; en lg se reordena
           visualmente a Briefing / Núcleo / Guía con las clases lg:order-*. */}
-      <div className="mt-14 grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-12">
         <div className="flex flex-col items-center lg:order-2 lg:col-span-6">
           <VeraCore
             state={coreState}
@@ -373,6 +350,30 @@ export function VeraHero() {
         <div className="lg:order-3 lg:col-span-3">
           <TodoListPanel tasks={tasks} />
         </div>
+      </div>
+
+      {/* Propuesta de valor: debajo del panel de mando, no por delante —
+          lo primero que se ve al cargar es la esfera en acción. */}
+      <div className="mx-auto mt-14 flex max-w-3xl flex-col items-center text-center">
+        <span className="mb-6 flex items-center gap-2 rounded-full border border-hud-cyan/30 bg-hud-cyan/10 px-4 py-1.5 text-xs font-medium text-hud-cyan backdrop-blur-sm">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-hud-cyan opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-hud-cyan" />
+          </span>
+          V.E.R.A operativa — habla o escribe para empezar
+        </span>
+
+        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+          Dile a V.E.R.A qué quieres crear
+          <br />
+          <span className="bg-gradient-to-r from-hud-cyan to-hud-blue bg-clip-text text-transparent">
+            y lo verás tomar forma al instante
+          </span>
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
+          Tu copiloto de diseño web y redes sociales. Sin código, sin fricción, sin coste de
+          infraestructura inicial.
+        </p>
       </div>
     </section>
   );

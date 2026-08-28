@@ -79,6 +79,10 @@ const config: Config = {
           "0%": { backgroundPosition: "0 0" },
           "100%": { backgroundPosition: "48px 48px" },
         },
+        "scan-sweep": {
+          "0%": { top: "0%" },
+          "100%": { top: "100%" },
+        },
       },
       animation: {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
@@ -87,6 +91,7 @@ const config: Config = {
         "orb-think": "orb-think 0.7s ease-in-out infinite",
         "eq-bar": "eq-bar 0.9s ease-in-out infinite",
         "grid-drift": "grid-drift 14s linear infinite",
+        "scan-sweep": "scan-sweep 1.6s ease-in-out infinite alternate",
       },
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],

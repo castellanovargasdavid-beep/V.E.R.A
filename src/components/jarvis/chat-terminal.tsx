@@ -15,6 +15,7 @@ export function ChatTerminal({
   onGenerationTelemetry,
   intent = "chat",
   className,
+  initialUserPrompt,
 }: {
   initialMessages?: ChatMessage[];
   onCodeGenerated?: (code: string, prompt: string) => void;
@@ -22,6 +23,8 @@ export function ChatTerminal({
   onGenerationTelemetry?: (info: { tier: ModelTier; latencyMs: number; inputChars: number; outputChars: number }) => void;
   intent?: "chat" | "ui_generation";
   className?: string;
+  /** Si se pasa, se envía automáticamente una vez al montar (p.ej. un brief que llega de otra página). */
+  initialUserPrompt?: string;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -30,6 +33,11 @@ export function ChatTerminal({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (initialUserPrompt) handleSend(initialUserPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUserPrompt]);
 
   async function handleSend(content: string) {
     const userMessage: ChatMessage = {

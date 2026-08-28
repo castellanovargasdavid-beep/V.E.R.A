@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Loader2, Share2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SocialCopyCard } from "@/components/social/social-copy-card";
+import { SocialBannerGenerator } from "@/components/SocialBannerGenerator";
 import { MOCK_SOCIAL_CAMPAIGN } from "@/lib/mock/data";
 import type { SocialCampaign } from "@/types/prompt";
 
@@ -57,11 +59,22 @@ export default function SocialPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {campaign.posts.map((post) => (
-          <SocialCopyCard key={post.platform} post={post} />
-        ))}
-      </div>
+      <Tabs defaultValue="copys">
+        <TabsList>
+          <TabsTrigger value="copys">📋 Copys</TabsTrigger>
+          <TabsTrigger value="graphics">🎨 Creatividades Gráficas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="copys">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {campaign.posts.map((post) => (
+              <SocialCopyCard key={post.platform} post={post} />
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="graphics">
+          <SocialBannerGenerator campaign={campaign} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

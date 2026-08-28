@@ -3,6 +3,7 @@ import { Cpu, Wand2, Share2, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { VeraHero } from "@/components/landing/vera-hero";
+import { WebAuditScanner } from "@/components/WebAuditScanner";
 
 const FEATURES = [
   {
@@ -91,6 +92,8 @@ export default function LandingPage() {
             </Card>
           ))}
         </section>
+
+        <WebAuditScanner />
       </div>
     </main>
   );

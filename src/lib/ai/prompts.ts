@@ -69,3 +69,24 @@ export function buildJsxPatchUserPrompt(fragment: string, instruction: string): 
 export function buildSocialCopyUserPrompt(content: string, tone?: string): string {
   return `Contenido de referencia (extraído del proyecto web del usuario):\n"""\n${content}\n"""\n\nTono deseado: ${tone ?? "profesional"}.\n\nGenera el JSON de campaña multicanal siguiendo estrictamente el formato indicado.`;
 }
+
+export const WEB_AUDIT_SYSTEM_PROMPT = `Eres V.E.R.A haciendo un diagnóstico táctico rápido de una web ya existente, a partir de señales técnicas reales que ya se han medido (no las inventes ni las cambies, son datos de verdad).
+
+Devuelve EXCLUSIVAMENTE un JSON válido (sin texto adicional, sin markdown) con esta forma exacta:
+{
+  "performanceLabel": string,
+  "performanceNotes": string[],
+  "croWeakPoints": string[],
+  "socialGaps": string[],
+  "summary": string
+}
+
+- "performanceLabel": una valoración corta (p.ej. "Aceptable, con margen de mejora en móvil"), basada en el tamaño de página y la latencia medidos — deja claro implícitamente que es una estimación heurística, no un informe de laboratorio de Core Web Vitals.
+- "performanceNotes": 2-4 frases cortas y concretas sobre lo medido (peso de la página, si declara meta viewport, imágenes sin ancho/alto...).
+- "croWeakPoints": 2-4 puntos débiles de conversión detectados a partir de las señales (pocos CTAs, ausencia de llamada a la acción clara, formularios largos...), en tono directo y accionable.
+- "socialGaps": 1-3 huecos de presencia en redes sociales según qué enlaces sociales se detectaron o no en la página.
+- "summary": un párrafo breve, en tu tono narrativo habitual, resumiendo el diagnóstico y por qué merece la pena reconstruir esa web con V.E.R.A.`;
+
+export function buildWebAuditUserPrompt(url: string, heuristics: object): string {
+  return `URL analizada: ${url}\n\nSeñales técnicas medidas (reales — no las inventes):\n${JSON.stringify(heuristics, null, 2)}\n\nGenera el JSON del diagnóstico siguiendo estrictamente el formato indicado.`;
+}

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { Rocket } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { ChatTerminal } from "@/components/jarvis/chat-terminal";
 import { LivePreview } from "@/components/builder/live-preview";
 import { CodePanel } from "@/components/builder/code-panel";
@@ -12,9 +15,19 @@ import { TelemetryProvider, useTelemetry, estimateTokensFromChars } from "@/lib/
 import { MOCK_CHAT_HISTORY, MOCK_STARTER_CODE } from "@/lib/mock/data";
 import type { CodeFragment } from "@/lib/builder/instrument-jsx";
 
+const AUDIT_BRIEF_KEY = "vera:audit-brief";
+
+// El modal de despliegue trae qrcode.react — se carga solo al abrirlo,
+// nunca en el bundle inicial del Builder.
+const DeployModal = dynamic(() => import("@/components/DeployModal").then((m) => m.DeployModal), {
+  ssr: false,
+});
+
 function BuilderPageInner() {
   const [code, setCode] = useState(MOCK_STARTER_CODE);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [deployOpen, setDeployOpen] = useState(false);
+  const [auditPrompt, setAuditPrompt] = useState<string | undefined>(undefined);
   const { addVersion } = useVersionHistory();
   const { recordCall } = useTelemetry();
 
@@ -23,6 +36,17 @@ function BuilderPageInner() {
   useEffect(() => {
     addVersion(MOCK_STARTER_CODE, "Versión inicial");
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Si venimos del escáner de diagnóstico táctico ("reconstruye y
+  // optimiza esta web"), recogemos el brief que dejó en sessionStorage y
+  // lo enviamos como primer mensaje del chat.
+  useEffect(() => {
+    const raw = sessionStorage.getItem(AUDIT_BRIEF_KEY);
+    if (raw) {
+      sessionStorage.removeItem(AUDIT_BRIEF_KEY);
+      setAuditPrompt(raw);
+    }
   }, []);
 
   function handleCodeGenerated(newCode: string, prompt: string) {
@@ -75,12 +99,23 @@ function BuilderPageInner() {
 
   return (
     <div className="relative flex h-full flex-col p-4">
-      <header className="mb-3">
-        <h1 className="text-lg font-semibold">Builder en vivo</h1>
-        <p className="text-sm text-muted-foreground">
-          Habla con V.E.R.A para generar tu interfaz, o haz clic en cualquier elemento de la vista
-          previa para editarlo al instante.
-        </p>
+      <header className="mb-3 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-semibold">Builder en vivo</h1>
+          <p className="text-sm text-muted-foreground">
+            Habla con V.E.R.A para generar tu interfaz, o haz clic en cualquier elemento de la vista
+            previa para editarlo al instante.
+          </p>
+        </div>
+        <Button
+          variant="jarvis"
+          size="sm"
+          onClick={() => setDeployOpen(true)}
+          className="shrink-0 gap-1.5 border-hud-cyan/40 bg-hud-cyan/10 text-hud-cyan hover:bg-hud-cyan/20"
+        >
+          <Rocket className="h-3.5 w-3.5" />
+          Desplegar en Vivo
+        </Button>
       </header>
 
       <div className="mb-3">
@@ -93,6 +128,7 @@ function BuilderPageInner() {
           intent="ui_generation"
           onCodeGenerated={handleCodeGenerated}
           onGenerationTelemetry={handleGenerationTelemetry}
+          initialUserPrompt={auditPrompt}
         />
 
         <Tabs defaultValue="preview" className="flex h-full flex-col overflow-hidden">
@@ -115,6 +151,7 @@ function BuilderPageInner() {
       </div>
 
       <TelemetryWidget />
+      {deployOpen && <DeployModal code={code} onClose={() => setDeployOpen(false)} />}
     </div>
   );
 }

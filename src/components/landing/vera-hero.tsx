@@ -7,7 +7,7 @@ import { Mic, MicOff, SendHorizonal, X, ArrowRight, Loader2, Volume2, VolumeX } 
 import type { VeraCoreState } from "@/components/VeraCore";
 import { LivePreview } from "@/components/builder/live-preview";
 import { ProjectBriefPanel, type BriefItem } from "@/components/landing/project-brief-panel";
-import { QuickGuidePanel } from "@/components/landing/quick-guide-panel";
+import { TodoListPanel } from "@/components/landing/todo-list-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -340,7 +340,7 @@ export function VeraHero() {
         </div>
 
         <div className="lg:order-3 lg:col-span-3">
-          <QuickGuidePanel />
+          <TodoListPanel />
         </div>
       </div>
     </section>
